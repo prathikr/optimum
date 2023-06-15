@@ -416,3 +416,17 @@ class ORTModelVaeDecoder(_ORTDiffusionModelPart):
         }
         outputs = self.session.run(None, onnx_inputs)
         return outputs
+
+class ORTModuleStableDiffusionPipeline(StableDiffusionPipeline):
+    def __init__(
+        self,
+        vae: Union[AutoencoderKL, ORTModule],
+        text_encoder: Union[CLIPTextModel, ORTModule],
+        tokenizer: CLIPTokenizer,
+        unet: Union[UNet2DConditionModel, ORTModule],
+        scheduler: KarrasDiffusionSchedulers,
+        safety_checker: StableDiffusionSafetyChecker,
+        feature_extractor: CLIPImageProcessor,
+        requires_safety_checker: bool = True,
+    ):
+        super().__init__()
