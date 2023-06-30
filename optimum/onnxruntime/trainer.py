@@ -505,16 +505,16 @@ class ORTTrainer(Trainer):
                 f" {args.max_steps}"
             )
 
-        # if DebugOption.UNDERFLOW_OVERFLOW in self.args.debug:
-        #     if self.args.n_gpu > 1:
-        #         # nn.DataParallel(model) replicates the model, creating new variables and module
-        #         # references registered here no longer work on other gpus, breaking the module
-        #         raise ValueError(
-        #             "Currently --debug underflow_overflow is not supported under DP. Please use DDP"
-        #             " (torch.distributed.launch)."
-        #         )
-        #     else:
-        #         debug_overflow = DebugUnderflowOverflow(self.model)  # noqa
+        if self.args.debug and DebugOption.UNDERFLOW_OVERFLOW in self.args.debug:
+            if self.args.n_gpu > 1:
+                # nn.DataParallel(model) replicates the model, creating new variables and module
+                # references registered here no longer work on other gpus, breaking the module
+                raise ValueError(
+                    "Currently --debug underflow_overflow is not supported under DP. Please use DDP"
+                    " (torch.distributed.launch)."
+                )
+            else:
+                debug_overflow = DebugUnderflowOverflow(self.model)  # noqa
 
         delay_optimizer_creation = (
             self.sharded_ddp is not None
@@ -824,13 +824,13 @@ class ORTTrainer(Trainer):
             self.control = self.callback_handler.on_epoch_end(args, self.state, self.control)
             self._maybe_log_save_evaluate(tr_loss, model, trial, epoch, ignore_keys_for_eval)
 
-            # if DebugOption.TPU_METRICS_DEBUG in self.args.debug:
-            #     logger.warning(
-            #         "You enabled PyTorch/XLA debug metrics which is not supported by ONNX "
-            #         "Runtime. Check your training configuration if this is unexpected."
-            #     )
-            # if self.control.should_training_stop:
-            #     break
+            if self.args.debug and DebugOption.TPU_METRICS_DEBUG in self.args.debug:
+                logger.warning(
+                    "You enabled PyTorch/XLA debug metrics which is not supported by ONNX "
+                    "Runtime. Check your training configuration if this is unexpected."
+                )
+            if self.control.should_training_stop:
+                break
 
         if args.past_index and hasattr(self, "_past"):
             # Clean the state at the end of training
