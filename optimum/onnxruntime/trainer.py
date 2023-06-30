@@ -439,7 +439,7 @@ class ORTTrainer(Trainer):
             if resume_from_checkpoint is None:
                 raise ValueError(f"No valid checkpoint found in output directory ({args.output_dir})")
 
-        if resume_from_checkpoint is not None and not is_sagemaker_mp_enabled() and args.deepspeed is None:
+        if resume_from_checkpoint is not None and not is_sagemaker_mp_enabled() and self.is_deepspeed_enabled is None:
             self._load_from_checkpoint(resume_from_checkpoint)
 
         # If model was re-initialized, put it on the right device and update self.model_wrapped
@@ -505,16 +505,16 @@ class ORTTrainer(Trainer):
                 f" {args.max_steps}"
             )
 
-        if DebugOption.UNDERFLOW_OVERFLOW in self.args.debug:
-            if self.args.n_gpu > 1:
-                # nn.DataParallel(model) replicates the model, creating new variables and module
-                # references registered here no longer work on other gpus, breaking the module
-                raise ValueError(
-                    "Currently --debug underflow_overflow is not supported under DP. Please use DDP"
-                    " (torch.distributed.launch)."
-                )
-            else:
-                debug_overflow = DebugUnderflowOverflow(self.model)  # noqa
+        # if DebugOption.UNDERFLOW_OVERFLOW in self.args.debug:
+        #     if self.args.n_gpu > 1:
+        #         # nn.DataParallel(model) replicates the model, creating new variables and module
+        #         # references registered here no longer work on other gpus, breaking the module
+        #         raise ValueError(
+        #             "Currently --debug underflow_overflow is not supported under DP. Please use DDP"
+        #             " (torch.distributed.launch)."
+        #         )
+        #     else:
+        #         debug_overflow = DebugUnderflowOverflow(self.model)  # noqa
 
         delay_optimizer_creation = (
             self.sharded_ddp is not None
@@ -824,13 +824,13 @@ class ORTTrainer(Trainer):
             self.control = self.callback_handler.on_epoch_end(args, self.state, self.control)
             self._maybe_log_save_evaluate(tr_loss, model, trial, epoch, ignore_keys_for_eval)
 
-            if DebugOption.TPU_METRICS_DEBUG in self.args.debug:
-                logger.warning(
-                    "You enabled PyTorch/XLA debug metrics which is not supported by ONNX "
-                    "Runtime. Check your training configuration if this is unexpected."
-                )
-            if self.control.should_training_stop:
-                break
+            # if DebugOption.TPU_METRICS_DEBUG in self.args.debug:
+            #     logger.warning(
+            #         "You enabled PyTorch/XLA debug metrics which is not supported by ONNX "
+            #         "Runtime. Check your training configuration if this is unexpected."
+            #     )
+            # if self.control.should_training_stop:
+            #     break
 
         if args.past_index and hasattr(self, "_past"):
             # Clean the state at the end of training
@@ -1068,7 +1068,7 @@ class ORTTrainer(Trainer):
             onnx_model_path = Path(self.args.output_dir)
 
             logger.info("[INFO] Exporting the model to ONNX...")
-            if self.args.deepspeed and self.args.fp16:
+            if self.is_deepspeed_enabled and self.args.fp16:
                 export_device = "cuda"
             else:
                 export_device = "cpu"
@@ -1299,7 +1299,7 @@ class ORTTrainer(Trainer):
             onnx_model_path = Path(self.args.output_dir)
 
             logger.info("[INFO] Exporting the model to ONNX...")
-            if self.args.deepspeed and self.args.fp16:
+            if self.is_deepspeed_enabled and self.args.fp16:
                 export_device = "cuda"
             else:
                 export_device = "cpu"
@@ -1583,7 +1583,7 @@ class ORTTrainer(Trainer):
                 Whether to export ONNX model with the loss in outputs.
         """
         if model is None:
-            if not (self.args.fp16 and self.args.deepspeed):
+            if not (self.args.fp16 and self.is_deepspeed_enabled):
                 # Taking CPU to export the model
                 self.model.to("cpu")
             model = unwrap_model(self.model)
