@@ -552,8 +552,6 @@ class ORTTrainer(Trainer):
             # for the rest of this function `model` is the outside model, whether it was wrapped or not
             if model is not self.model:
                 self.model_wrapped = model
-            # backward compatibility
-            self.deepspeed = self.model_wrapped
 
             if args.fp16:
                 from onnxruntime.training.optim.fp16_optimizer import FP16_Optimizer
@@ -1649,8 +1647,8 @@ class ORTTrainer(Trainer):
             )
 
         # already initialized its own DDP and AMP
-        if self.deepspeed:
-            return self.deepspeed
+        if self.is_deepspeed_enabled:
+            return self.is_deepspeed_enabled
 
         # train/eval could be run multiple-times - if already wrapped, don't re-wrap it again
         if unwrap_model(model) is not model:
