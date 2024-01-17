@@ -399,7 +399,7 @@ class ORTTrainer(Trainer):
     def _inner_training_loop(
         self, batch_size=None, args=None, resume_from_checkpoint=None, trial=None, ignore_keys_for_eval=None
     ):
-        from torch_ort import ORTModule
+        from torch_ort import ORTModule, DebugOptions, LogLevel
 
         self.accelerator.free_memory()
         self._train_batch_size = batch_size
@@ -459,7 +459,7 @@ class ORTTrainer(Trainer):
 
         # Wrap the model with `ORTModule`
         logger.info("Wrap ORTModule for ONNX Runtime training.")
-        model = ORTModule(self.model)
+        model = ORTModule(self.model, DebugOptions(save_onnx=True, onnx_prefix='ort', log_level=LogLevel.VERBOSE))
         self.model_wrapped = model
         self.model = model
 
