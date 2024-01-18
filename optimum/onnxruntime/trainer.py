@@ -459,7 +459,7 @@ class ORTTrainer(Trainer):
 
         # Wrap the model with `ORTModule`
         logger.info("Wrap ORTModule for ONNX Runtime training.")
-        model = ORTModule(self.model, DebugOptions(save_onnx=True, onnx_prefix='ort', log_level=LogLevel.VERBOSE))
+        model = ORTModule(self.model, DebugOptions(save_onnx=True, onnx_prefix='./output/ort', log_level=LogLevel.VERBOSE))
         self.model_wrapped = model
         self.model = model
 
